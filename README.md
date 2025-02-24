@@ -18,7 +18,7 @@ conda环境配置
 
 当项目拉取到本地后
 
-`git clone https://github.com/Alittlepiggy/MNIST_Try`
+`git clone https://github.com/Alittlepiggy/MNIST_Try.git`
 
 你可以看到这样的文件格式，然后即可玩一玩了！
 
