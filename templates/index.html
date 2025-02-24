@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Pixel Art Editor with Predict</title>
+    <style>
+        .container {
+            display: flex;
+            flex-direction: row;
+        }
+
+        canvas {
+            border: 1px solid black;
+        }
+
+        #result {
+            margin-left: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            width: 200px;
+            height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <canvas id="pixelCanvas" width="280" height="280"></canvas>
+        <div id="result">Prediction: ?</div>
+    </div>
+    <button onclick="predictDrawing()">Predict</button>
+    <button onclick="clearCanvas()">Clear</button>
+    <script>
+        const canvas = document.getElementById('pixelCanvas');
+        const ctx = canvas.getContext('2d');
+        const pixelSize = 10; // 每个像素块的大小
+        let drawing = false;
+        const resultDiv = document.getElementById('result');
+
+        function clearCanvas() {
+            // 清除整个画布
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // 重新绘制中心指示框
+            drawCenterIndicator(ctx);
+            resultDiv.innerText = 'Prediction: ?'; // 清空预测结果
+        }
+
+        function fillPixel(x, y) {
+            ctx.fillStyle = "white";
+
+            // 确保填充不会超出画布边界
+            for (let i = x; i < x + 2 && i < canvas.width / pixelSize; i++) {
+                for (let j = y; j < y + 2 && j < canvas.height / pixelSize; j++) {
+                    ctx.fillRect(i * pixelSize, j * pixelSize, pixelSize, pixelSize);
+                }
+            }
+        }
+
+        function predictDrawing() {
+            const smallCanvas = document.createElement('canvas');
+            const smallCtx = smallCanvas.getContext('2d');
+            smallCanvas.width = 28;
+            smallCanvas.height = 28;
+
+            smallCtx.drawImage(canvas, 0, 0, smallCanvas.width, smallCanvas.height);
+
+            // 将小画布转换为base64格式的数据URL
+            const imageDataURL = smallCanvas.toDataURL('image/png').split(',')[1]; // 获取base64数据部分
+
+            fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    image: `data:image/png;base64,${imageDataURL}`
+                })
+            }).then(response => response.json())
+              .then(data => {
+                  resultDiv.innerText = `Prediction: ${data.prediction}`;
+              });
+        }
+
+        function setupDrawing() {
+            clearCanvas(); // 确保画布干净，准备新绘制
+
+            canvas.addEventListener('mousedown', () => drawing = true);
+            canvas.addEventListener('mouseup', () => drawing = false);
+            canvas.addEventListener('mouseleave', () => drawing = false); // 当鼠标离开画布时停止绘制
+            canvas.addEventListener('mousemove', (event) => {
+                if (!drawing) return;
+                const rect = canvas.getBoundingClientRect();
+                const x = Math.floor((event.clientX - rect.left) / pixelSize);
+                const y = Math.floor((event.clientY - rect.top) / pixelSize);
+
+                fillPixel(x, y);
+            });
+            // 在页面加载时绘制中心指示框
+            drawCenterIndicator(ctx);
+        }
+        function drawCenterIndicator(ctx) {
+            const indicatorSize = 200; // 中心区域的大小
+            const startX = (canvas.width / 2) - (indicatorSize / 2);
+            const startY = (canvas.height / 2) - (indicatorSize / 2);
+
+            ctx.strokeStyle = "red"; // 设置线条颜色为红色
+            ctx.strokeRect(startX, startY, indicatorSize, indicatorSize); // 绘制中心指示框
+}
+
+        setupDrawing();
+    </script>
+</body>
+
+</html>
